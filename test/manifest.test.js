@@ -7,10 +7,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { DEVICE_BLUEPRINTS, SCENE_TRIGGER_KEYS } from '../src/devices/index.js';
-import { SCENE_ACTIONS } from '../src/scenes.js';
-import { WIDGETS } from '../src/widgets.js';
-import { DEFAULT_CONFIG } from '../src/config.js';
+import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
+import { ACTIONS, registerHandlers } from '../src/app.js';
+import { SCENE_TRIGGERS } from '../src/hub.js';
+import { createSceneActions } from '../src/scenes.js';
+import { WIDGET_KEY } from '../src/widgets.js';
+import { DEFAULT_CONFIG, LANGUAGES, POLL_INTERVALS } from '../src/config.js';
 
 const manifest = JSON.parse(
   await readFile(new URL('../gladys-assistant-integration.json', import.meta.url), 'utf8'),
@@ -29,8 +31,9 @@ const allFields = [
   ...(manifest.widgets ?? []).flatMap((widget) => widget.settings ?? []),
 ];
 
-// Actions registered outside the blueprints (see index.js).
-const REGISTRY_LEVEL_ACTIONS = ['identify'];
+const SCENE_ACTIONS = createSceneActions({});
+const SCENE_TRIGGER_KEYS = Object.values(SCENE_TRIGGERS);
+const WIDGETS = [WIDGET_KEY];
 
 // Manifest fields older Gladys releases reject as unknown, with the first
 // release accepting them. The store validator refuses a manifest whose
@@ -57,14 +60,33 @@ function isAtLeast(version, required) {
   return true;
 }
 
-test('every manifest action has a registered handler', () => {
-  const handled = new Set([
-    ...DEVICE_BLUEPRINTS.flatMap((bp) => Object.keys(bp.actions ?? {})),
-    ...REGISTRY_LEVEL_ACTIONS,
-  ]);
-  for (const action of manifest.actions ?? []) {
-    assert.ok(handled.has(action.key), `manifest action "${action.key}" has no handler`);
+test('every manifest action has a registered handler, and vice versa', () => {
+  const handled = Object.values(ACTIONS);
+  assert.deepEqual(keysOf(manifest.actions).sort(), [...handled].sort());
+});
+
+test('the handlers registered on the SDK are the declared ones', () => {
+  // registerHandlers on a fake Gladys, without connecting: the SDK's own
+  // handler maps hold what Gladys would call.
+  const gladys = createFakeGladys({ config: {} });
+  const registered = { action: [], sceneAction: [], widgetGet: [], widgetAction: [] };
+  for (const [method, list] of [
+    ['onAction', registered.action],
+    ['onSceneAction', registered.sceneAction],
+    ['onWidgetGet', registered.widgetGet],
+    ['onWidgetAction', registered.widgetAction],
+  ]) {
+    const original = gladys[method].bind(gladys);
+    gladys[method] = (key, handler) => {
+      list.push(key);
+      return original(key, handler);
+    };
   }
+  registerHandlers(gladys, { timers: false, fetch: async () => new Response('{}') });
+  assert.deepEqual(registered.action, keysOf(manifest.actions));
+  assert.deepEqual(registered.sceneAction, keysOf(manifest.scene_actions));
+  assert.deepEqual(registered.widgetGet, keysOf(manifest.widgets));
+  assert.deepEqual(registered.widgetAction, keysOf(manifest.widgets));
 });
 
 test('declaring catalog categories requires Gladys >= 4.86.0', () => {
@@ -82,7 +104,7 @@ test('declaring catalog categories requires Gladys >= 4.86.0', () => {
 
 test('declaring scene triggers, scene actions or widgets requires Gladys >= 5.1.0', () => {
   const declared = CAPABILITY_FIELDS.filter((field) => manifest[field] !== undefined);
-  assert.ok(declared.length > 0, 'the template demonstrates the capability fields');
+  assert.deepEqual(declared, CAPABILITY_FIELDS);
   assert.ok(
     isAtLeast(minGladysVersion(), CAPABILITY_MIN_GLADYS_VERSION),
     `${declared.join(', ')} requires gladys_version >= 5.1.0, got "${manifest.gladys_version}"`,
@@ -99,14 +121,39 @@ test('every scene_actions key has an onSceneAction handler, and vice versa', () 
   }
 });
 
-test('every widgets key has an onWidgetGet handler, and vice versa', () => {
-  const declared = keysOf(manifest.widgets);
-  for (const key of declared) {
-    assert.equal(typeof WIDGETS[key]?.get, 'function', `widget "${key}" has no content handler`);
-  }
-  for (const key of Object.keys(WIDGETS)) {
-    assert.ok(declared.includes(key), `widget "${key}" is not declared in widgets`);
-  }
+test('every widgets key has a handler, and vice versa', () => {
+  assert.deepEqual(keysOf(manifest.widgets), WIDGETS);
+});
+
+test('the dated energy consumption and the thermostat presets require Gladys >= 5.2.0', () => {
+  // publishEnergyConsumption (Gladys#3187) and the thermostat `preset` type
+  // shipped in 5.2.0 (git tag --contains).
+  assert.ok(
+    isAtLeast(minGladysVersion(), [5, 2, 0]),
+    `gladys_version must be >= 5.2.0, got "${manifest.gladys_version}"`,
+  );
+});
+
+test('a cloud-only integration in the climate shelf, named the same in every language', () => {
+  assert.deepEqual(manifest.transports, ['cloud']);
+  assert.equal(manifest.categories[0], 'climate');
+  assert.equal(manifest.name, 'Sinopé Neviweb');
+  assert.ok(manifest.name.length >= 3 && manifest.name.length <= 30);
+  assert.equal(manifest.docker_image, `ghcr.io/guim31/gladys-sinope:${manifest.version}`);
+});
+
+test('the select options of the configuration are the ones the code accepts', () => {
+  const field = (key) => manifest.config_schema.find((f) => f.key === key);
+  assert.deepEqual(
+    field('language').options.map((o) => o.value),
+    LANGUAGES,
+  );
+  assert.deepEqual(
+    field('poll_interval').options.map((o) => o.value),
+    POLL_INTERVALS,
+  );
+  assert.equal(field('password').type, 'secret');
+  assert.equal(field('password').default, undefined);
 });
 
 test('every scene trigger the code fires is declared in scene_triggers, and vice versa', () => {
@@ -135,7 +182,7 @@ test('config_schema defaults stay consistent with DEFAULT_CONFIG', () => {
 
 test('section fields are purely presentational', () => {
   const sections = manifest.config_schema.filter((f) => f.type === 'section');
-  assert.ok(sections.length > 0, 'the template demonstrates at least one section block');
+  assert.ok(sections.length > 0, 'the form opens on an intro block');
   for (const section of sections) {
     // A section stores NO value: declaring `required`, `default` or
     // `placeholder` on it rejects the manifest, and its key must never leak
@@ -160,7 +207,7 @@ test('section fields are purely presentational', () => {
 
 test('dynamic selects declare a source and no static options', () => {
   const dynamicSelects = allFields.filter((f) => f.source !== undefined);
-  assert.ok(dynamicSelects.length > 0, 'the template demonstrates a dynamic select');
+  assert.ok(dynamicSelects.length > 0, 'the widget picks its thermostats');
   for (const field of dynamicSelects) {
     assert.equal(field.source, 'devices', 'the only core-defined source in V1 is "devices"');
     assert.equal(
@@ -196,7 +243,7 @@ test('the catalog description holds 10 to 100 characters per language', () => {
 test('field placeholders are multi-language objects', () => {
   // Like `label` and `description`: a plain string rejects the manifest.
   const withPlaceholder = allFields.filter((f) => f.placeholder !== undefined);
-  assert.ok(withPlaceholder.length > 0, 'the template demonstrates a placeholder');
+  assert.ok(withPlaceholder.length > 0, 'the e-mail field shows an example');
   for (const field of withPlaceholder) {
     assert.equal(typeof field.placeholder, 'object', `field "${field.key}": placeholder`);
     assert.ok(field.placeholder.en, `field "${field.key}": placeholder needs an English text`);

@@ -1,77 +1,145 @@
+// -----------------------------------------------------------------------------
+// The `thermostats` widget: content within the core budget (checked by the
+// SDK's own validator), localized, filtered by its settings, and its
+// home/away buttons.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { WIDGET_ACTIONS, WIDGET_KEY, buildThermostatsContent } from '../src/widgets.js';
+import { createDevices, createWorld, discovered } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+async function world(t, options) {
+  const w = await createWorld(options);
+  t.after(() => w.app.stop());
+  return w;
+}
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
+async function content(w, request) {
+  const ack = await w.gladys.fake.widgetGet(WIDGET_KEY, request);
+  assert.equal(ack.success, true, ack.error);
+  return ack.data.content;
+}
 
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
-
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
-  }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
+test('every thermostat of the house, temperature and setpoint, within the budget', async (t) => {
+  const w = await world(t);
+  await createDevices(w);
+  const fr = await content(w, { language: 'fr' });
+  assert.deepEqual(validateWidgetContent(fr), []);
+  const [status] = fr.components.filter((c) => c.type === 'status');
+  assert.deepEqual(
+    status.items.map((item) => [item.label, item.value, item.color]),
+    [
+      ['Chambre', '19,4 °C → 19 °C', 'success'],
+      ['Plancher', '21,3 °C → 22 °C', 'success'],
+      ['Salle de bain', '22,1 °C → 23,5 °C', 'success'],
+      ['Salon', '20,5 °C → 21 °C · 45 %', 'warning'],
+      ['Séjour', '18 °C → 18,5 °C · 30 %', 'warning'],
+    ],
   );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
+  const buttons = fr.components.filter((c) => c.type === 'button');
+  assert.deepEqual(
+    buttons.map((b) => [b.label, b.icon, b.action.key]),
+    [
+      ['Maison', 'check-circle', WIDGET_ACTIONS.HOME],
+      ['Absent', 'log-out', WIDGET_ACTIONS.AWAY],
+    ],
+  );
+
+  const us = await content(w, { language: 'en', units: 'us' });
+  const [usStatus] = us.components.filter((c) => c.type === 'status');
+  assert.equal(usStatus.items[3].value, '68.9 °F → 69.8 °F · 45 %');
+
+  for (const language of ['en', 'de', 'es']) {
+    assert.deepEqual(validateWidgetContent(await content(w, { language })), [], language);
   }
 });
 
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
+test('the thermostats picked in the settings only', async (t) => {
+  const w = await world(t);
+  await createDevices(w);
+  const picked = [discovered(w, 3002).external_id, discovered(w, 4002).external_id];
+  const result = await content(w, { language: 'en', settings: { thermostats: picked } });
+  const [status] = result.components.filter((c) => c.type === 'status');
+  assert.deepEqual(
+    status.items.map((item) => item.label),
+    ['Salon', 'Séjour'],
   );
 });
 
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('an off or unreachable thermostat says so', () => {
+  const snapshot = {
+    configured: true,
+    discovered: true,
+    peakActive: true,
+    locationModes: ['away'],
+    thermostats: [
+      { externalId: 'a', name: 'Bureau', reachable: true, states: { temperature: 17.2, mode: 0 } },
+      { externalId: 'b', name: 'Garage', reachable: false, states: { temperature: 9 } },
+    ],
+  };
+  const result = buildThermostatsContent(snapshot, { language: 'fr' });
+  assert.deepEqual(validateWidgetContent(result), []);
+  assert.deepEqual(result.components[0], {
+    type: 'text',
+    variant: 'heading',
+    text: 'Période de pointe Éco-Sinopé en cours',
+  });
+  const [status] = result.components.filter((c) => c.type === 'status');
+  assert.deepEqual(
+    status.items.map((item) => [item.value, item.color]),
+    [
+      ['17,2 °C · arrêt', 'neutral'],
+      ['9 °C', 'danger'],
+    ],
+  );
+  const away = result.components.find(
+    (c) => c.type === 'button' && c.action.key === WIDGET_ACTIONS.AWAY,
+  );
+  assert.equal(away.icon, 'check-circle');
+});
+
+test('more than ten thermostats: ten rows and a count', () => {
+  const thermostats = Array.from({ length: 13 }, (_, i) => ({
+    externalId: `t${i}`,
+    name: `Pièce ${String(i).padStart(2, '0')}`,
+    reachable: true,
+    states: { temperature: 20, setpoint: 21, mode: 1, operating_state: 0, heating: 0 },
+  }));
+  const result = buildThermostatsContent(
+    { configured: true, discovered: true, peakActive: false, locationModes: [], thermostats },
+    { language: 'en' },
+  );
+  assert.deepEqual(validateWidgetContent(result), []);
+  assert.equal(result.components.find((c) => c.type === 'status').items.length, 10);
+  assert.equal(result.components.find((c) => c.type === 'text').text, '+3');
+});
+
+test('not configured, nothing added yet', async (t) => {
+  const empty = await world(t, { config: {} });
+  const notConfigured = await content(empty, { language: 'de' });
+  assert.match(notConfigured.components[0].text, /Gib die E-Mail-Adresse/);
+
+  const w = await world(t);
+  const none = await content(w, { language: 'es' });
+  assert.equal(none.components[0].text, 'Aún no hay ningún termostato añadido a Gladys');
+});
+
+test('the away button sets every location away, and says so', async (t) => {
+  const w = await world(t);
+  await createDevices(w, [3002]);
+  const ack = await w.gladys.fake.widgetAction(WIDGET_KEY, WIDGET_ACTIONS.AWAY);
+  assert.equal(ack.success, true);
+  assert.equal(ack.data.message.fr, 'Mode absent envoyé à 2 emplacement(s) Neviweb');
+  assert.deepEqual(
+    w.server.locations.map((l) => l.mode),
+    ['away', 'away'],
+  );
+  const after = await content(w, { language: 'en' });
+  const away = after.components.find(
+    (c) => c.type === 'button' && c.action.key === WIDGET_ACTIONS.AWAY,
+  );
+  assert.equal(away.icon, 'check-circle');
+  assert.ok(w.gladys.fake.widgetRefreshes.length > 0, 'the widget is asked to refresh');
 });
