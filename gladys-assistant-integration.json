@@ -1,177 +1,361 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Sinopé Neviweb",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Sinopé thermostats, dimmers, load controllers and leak detectors from your Neviweb account.",
+    "fr": "Thermostats, gradateurs, contrôleurs de charge et détecteurs de fuite Sinopé de Neviweb.",
+    "de": "Sinopé-Thermostate, Dimmer, Lastregler und Wassermelder aus deinem Neviweb-Konto.",
+    "es": "Termostatos, reguladores, controladores de carga y detectores de fugas Sinopé de Neviweb."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-sinope:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-sinope/main/cover.png",
+  "categories": ["climate", "energy", "lighting"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Neviweb account",
+        "fr": "Votre compte Neviweb",
+        "de": "Dein Neviweb-Konto",
+        "es": "Su cuenta Neviweb"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "The devices are read from Neviweb, the Sinopé cloud, every 5 minutes. Use the e-mail and password of the Neviweb app.",
+        "fr": "Les appareils sont lus sur Neviweb, le nuage de Sinopé, toutes les 5 minutes. Utilisez le courriel et le mot de passe de l'application Neviweb.",
+        "de": "Die Geräte werden alle 5 Minuten aus Neviweb, der Cloud von Sinopé, gelesen. Nutze die E-Mail-Adresse und das Passwort der Neviweb-App.",
+        "es": "Los dispositivos se leen en Neviweb, la nube de Sinopé, cada 5 minutos. Utilice el correo y la contraseña de la aplicación Neviweb."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://neviweb.com",
+          "label": {
+            "en": "Neviweb",
+            "fr": "Neviweb",
+            "de": "Neviweb",
+            "es": "Neviweb"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "username",
+      "type": "string",
+      "label": {
+        "en": "E-mail",
+        "fr": "Courriel",
+        "de": "E-Mail-Adresse",
+        "es": "Correo electrónico"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "placeholder": {
+        "en": "name@example.com",
+        "fr": "nom@example.com",
+        "de": "name@example.com",
+        "es": "nombre@example.com"
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Password",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "es": "Contraseña"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "required": true
     },
     {
-      "key": "unit",
+      "key": "locations",
+      "type": "string",
+      "label": {
+        "en": "Neviweb locations",
+        "fr": "Emplacements Neviweb",
+        "de": "Neviweb-Standorte",
+        "es": "Ubicaciones Neviweb"
+      },
+      "description": {
+        "en": "Names of the locations to read, separated by commas. Empty: every location of the account.",
+        "fr": "Noms des emplacements à lire, séparés par des virgules. Vide : tous les emplacements du compte.",
+        "de": "Namen der zu lesenden Standorte, durch Kommas getrennt. Leer: alle Standorte des Kontos.",
+        "es": "Nombres de las ubicaciones que se leen, separados por comas. Vacío: todas las ubicaciones de la cuenta."
+      },
+      "placeholder": {
+        "en": "e.g. Home, Cottage",
+        "fr": "ex. Maison, Chalet",
+        "de": "z. B. Haus, Hütte",
+        "es": "p. ej. Casa, Cabaña"
+      },
+      "required": false
+    },
+    {
+      "key": "poll_interval",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Reading interval",
+        "fr": "Intervalle de lecture",
+        "de": "Abfrageintervall",
+        "es": "Intervalo de lectura"
+      },
+      "description": {
+        "en": "Sinopé asks for 5 minutes at least: Neviweb cuts off the accounts that call too often.",
+        "fr": "Sinopé demande 5 minutes au moins : Neviweb bloque les comptes qui l'appellent trop souvent.",
+        "de": "Sinopé verlangt mindestens 5 Minuten: Neviweb sperrt Konten, die zu oft anfragen.",
+        "es": "Sinopé pide 5 minutos como mínimo: Neviweb bloquea las cuentas que consultan con demasiada frecuencia."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "5",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "5",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": "10",
+          "label": {
+            "en": "10 minutes",
+            "fr": "10 minutes",
+            "de": "10 Minuten",
+            "es": "10 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms de fonctionnalités",
+        "de": "Sprache der Funktionsnamen",
+        "es": "Idioma de los nombres de funciones"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Applies to the devices added after the change.",
+        "fr": "S'applique aux appareils ajoutés après le changement.",
+        "de": "Gilt für die nach der Änderung hinzugefügten Geräte.",
+        "es": "Se aplica a los dispositivos añadidos después del cambio."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the Neviweb connection",
+        "fr": "Tester la connexion à Neviweb",
+        "de": "Neviweb-Verbindung testen",
+        "es": "Probar la conexión con Neviweb"
+      },
+      "description": {
+        "en": "Logs in, lists the locations and counts the supported devices.",
+        "fr": "Se connecte, liste les emplacements et compte les appareils pris en charge.",
+        "de": "Meldet sich an, listet die Standorte auf und zählt die unterstützten Geräte.",
+        "es": "Inicia sesión, enumera las ubicaciones y cuenta los dispositivos compatibles."
+      },
+      "timeout_seconds": 120
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
-      "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+      "key": "peak_period_started",
+      "label": {
+        "en": "Éco-Sinopé peak period started",
+        "fr": "Début d'une période de pointe Éco-Sinopé",
+        "de": "Éco-Sinopé-Spitzenzeit beginnt",
+        "es": "Inicio de un periodo punta Éco-Sinopé"
       },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
-        }
-      ],
+      "description": {
+        "en": "A device enrolled in Éco-Sinopé receives a peak event (preheating included).",
+        "fr": "Un appareil inscrit à Éco-Sinopé reçoit un événement de pointe (préchauffage compris).",
+        "de": "Ein bei Éco-Sinopé angemeldetes Gerät erhält ein Spitzenereignis (Vorheizen inbegriffen).",
+        "es": "Un dispositivo inscrito en Éco-Sinopé recibe un evento punta (precalentamiento incluido)."
+      },
       "variables": [
         {
-          "key": "target",
-          "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "key": "devices",
+          "type": "number",
+          "label": {
+            "en": "Devices in the event",
+            "fr": "Appareils concernés",
+            "de": "Betroffene Geräte",
+            "es": "Dispositivos afectados"
+          }
+        }
+      ]
+    },
+    {
+      "key": "peak_period_ended",
+      "label": {
+        "en": "Éco-Sinopé peak period ended",
+        "fr": "Fin d'une période de pointe Éco-Sinopé",
+        "de": "Éco-Sinopé-Spitzenzeit endet",
+        "es": "Fin de un periodo punta Éco-Sinopé"
+      },
+      "description": {
+        "en": "No device enrolled in Éco-Sinopé is in a peak event any more.",
+        "fr": "Plus aucun appareil inscrit à Éco-Sinopé n'est en événement de pointe.",
+        "de": "Kein bei Éco-Sinopé angemeldetes Gerät ist mehr in einem Spitzenereignis.",
+        "es": "Ningún dispositivo inscrito en Éco-Sinopé sigue en un evento punta."
+      },
+      "variables": [
+        {
+          "key": "devices",
+          "type": "number",
+          "label": {
+            "en": "Devices still in the event",
+            "fr": "Appareils encore concernés",
+            "de": "Noch betroffene Geräte",
+            "es": "Dispositivos aún afectados"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "set_location_mode",
+      "label": {
+        "en": "Set the Neviweb home/away mode",
+        "fr": "Régler le mode maison/absent de Neviweb",
+        "de": "Neviweb-Modus Zuhause/Abwesend setzen",
+        "es": "Ajustar el modo en casa/ausente de Neviweb"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Away lowers the thermostats to their away setpoint, set in the Neviweb app.",
+        "fr": "Absent baisse les thermostats à leur consigne d'absence, réglée dans l'application Neviweb.",
+        "de": "Abwesend senkt die Thermostate auf ihre Abwesenheitstemperatur aus der Neviweb-App.",
+        "es": "Ausente baja los termostatos a su consigna de ausencia, ajustada en la aplicación Neviweb."
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
-          "key": "device",
+          "key": "mode",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Mode",
+            "fr": "Mode",
+            "de": "Modus",
+            "es": "Modo"
+          },
+          "required": true,
+          "options": [
+            {
+              "value": "home",
+              "label": {
+                "en": "Home",
+                "fr": "Maison",
+                "de": "Zuhause",
+                "es": "En casa"
+              }
+            },
+            {
+              "value": "away",
+              "label": {
+                "en": "Away",
+                "fr": "Absent",
+                "de": "Abwesend",
+                "es": "Ausente"
+              }
+            }
+          ]
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "locations",
+          "type": "number",
+          "label": {
+            "en": "Locations changed",
+            "fr": "Emplacements modifiés",
+            "de": "Geänderte Standorte",
+            "es": "Ubicaciones modificadas"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "thermostats",
+      "label": {
+        "en": "Sinopé thermostats",
+        "fr": "Thermostats Sinopé",
+        "de": "Sinopé-Thermostate",
+        "es": "Termostatos Sinopé"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Temperature and setpoint of every room, the peak in progress, home or away.",
+        "fr": "Température et consigne de chaque pièce, la pointe en cours, maison ou absent.",
+        "de": "Temperatur und Sollwert jedes Raums, laufende Spitzenzeit, Zuhause oder Abwesend.",
+        "es": "Temperatura y consigna de cada habitación, el periodo punta, en casa o ausente."
+      },
+      "icon": "thermometer",
+      "settings": [
+        {
+          "key": "thermostats",
+          "type": "multi_select",
+          "source": "devices",
+          "label": {
+            "en": "Thermostats shown (all if none)",
+            "fr": "Thermostats affichés (tous si aucun)",
+            "de": "Angezeigte Thermostate (alle, wenn keiner)",
+            "es": "Termostatos mostrados (todos si ninguno)"
+          },
+          "required": false
+        }
+      ],
+      "action_timeout_seconds": 30
     }
   ]
 }

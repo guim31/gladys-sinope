@@ -1,45 +1,82 @@
 // -----------------------------------------------------------------------------
-// Integration configuration.
-//
-// The configuration is filled in by the user in Gladys, from the `config_schema`
-// declared in `gladys-assistant-integration.json`. The SDK fetches it for you
-// (`gladys.getConfig()`) and notifies you of every change through
-// `gladys.onConfigUpdated()`.
-//
-// This module only provides defaults and normalizes the received object, so the
-// rest of the code never has to deal with `undefined`.
+// Integration configuration: defaults (they mirror the `default` values of the
+// manifest `config_schema`, see test/manifest.test.js) and normalization, so
+// the rest of the code never deals with strings, blanks or `undefined`.
 // -----------------------------------------------------------------------------
 
-// Defaults: they MUST stay consistent with the `default` values declared in the
-// `config_schema` of the manifest.
+export const LANGUAGES = ['en', 'fr', 'de', 'es'];
+
+// Minutes between two reads of Neviweb. Sinopé asks for five minutes at least
+// (the HACS integrations moved to it after accounts were cut off), and a
+// Neviweb session expires after about ten idle minutes: nothing slower is
+// offered, a slower pace would log in again at every cycle.
+export const POLL_INTERVALS = ['5', '10'];
+
 export const DEFAULT_CONFIG = {
-  latitude: 48.8566, // Paris
-  longitude: 2.3522,
-  unit: 'celsius', // 'celsius' | 'fahrenheit'
-  // Seconds between two reads of the polled sensors. Gladys polls at most once
-  // a minute: slower intervals are applied by skipping polls (see
-  // createPoller in src/devices/index.js).
-  poll_frequency: 300,
-  // Reserved key (NOT in config_schema): because the manifest declares both
-  // 'local' and 'cloud' in its `transports` field, Gladys shows a standard
-  // "Prefer the local connection" toggle and sends the user's choice here.
-  // Read-only for the integration; defaults to true.
-  GLADYS_PREFER_LOCAL: true,
+  username: '',
+  password: '',
+  locations: '',
+  poll_interval: '5',
+  language: 'fr',
 };
 
 /**
- * Merge the user config with the defaults.
- * @param {Record<string, unknown>} raw config returned by the SDK
+ * Location names typed by the user: commas, semicolons or new lines between
+ * them, compared without case nor accents (see matchesLocation).
+ * @param {unknown} raw
+ * @returns {string[]}
+ */
+export function parseLocations(raw) {
+  if (typeof raw !== 'string') {
+    return [];
+  }
+  return [
+    ...new Set(
+      raw
+        .split(/[,;\n]+/)
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+const fold = (text) =>
+  String(text ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim()
+    .toLowerCase();
+
+/**
+ * Whether a Neviweb location is one the configuration asks for. An empty list
+ * means every location of the account.
+ * @param {string[]} wanted
+ * @param {string} name
+ */
+export function matchesLocation(wanted, name) {
+  return wanted.length === 0 || wanted.some((entry) => fold(entry) === fold(name));
+}
+
+/**
+ * @param {Record<string, unknown>} raw the configuration returned by the SDK
  */
 export function normalizeConfig(raw = {}) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const text = (value) => (typeof value === 'string' ? value.trim() : '');
+  const pollInterval = String(source.poll_interval ?? DEFAULT_CONFIG.poll_interval);
   return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    // Force the types: config may arrive as strings from a form.
-    latitude: Number(raw.latitude ?? DEFAULT_CONFIG.latitude),
-    longitude: Number(raw.longitude ?? DEFAULT_CONFIG.longitude),
-    poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
-    // The preference is a boolean; anything but an explicit false means true.
-    GLADYS_PREFER_LOCAL: raw.GLADYS_PREFER_LOCAL !== false,
+    username: text(source.username),
+    // A password may start or end with a space: kept as typed.
+    password: typeof source.password === 'string' ? source.password : '',
+    locations: parseLocations(source.locations),
+    pollIntervalMs:
+      Number(POLL_INTERVALS.includes(pollInterval) ? pollInterval : DEFAULT_CONFIG.poll_interval) *
+      60_000,
+    language: LANGUAGES.includes(source.language) ? source.language : DEFAULT_CONFIG.language,
   };
+}
+
+/** The Neviweb account is filled in. */
+export function isConfigured(config) {
+  return config.username !== '' && config.password !== '';
 }

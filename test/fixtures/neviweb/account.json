@@ -1,0 +1,248 @@
+{
+  "locations": [
+    { "id": 2001, "name": "Maison", "mode": "home", "postalCode": "H0H 0H0" },
+    { "id": 2002, "name": "Chalet", "mode": "home", "postalCode": "H0H 0H0" }
+  ],
+  "devices": {
+    "2001": [
+      {
+        "id": 3001,
+        "identifier": "00aa00000000c130",
+        "name": "Passerelle",
+        "family": "130",
+        "sku": "GT130"
+      },
+      {
+        "id": 3002,
+        "identifier": "00aa000000001123",
+        "name": "Salon",
+        "family": "1123",
+        "sku": "TH1123ZB"
+      },
+      {
+        "id": 3003,
+        "identifier": "00aa000000000737",
+        "name": "Salle de bain",
+        "family": "737",
+        "sku": "TH1300ZB"
+      },
+      {
+        "id": 3004,
+        "identifier": "00aa000000001510",
+        "name": "Chambre",
+        "family": "1510",
+        "sku": "TH1124WF"
+      },
+      {
+        "id": 3005,
+        "identifier": "00aa000000002131",
+        "name": "Cuisine",
+        "family": "2131",
+        "sku": "DM2500ZB"
+      },
+      {
+        "id": 3006,
+        "identifier": "00aa000000002121",
+        "name": "Entrée",
+        "family": "2121",
+        "sku": "SW2500ZB"
+      },
+      {
+        "id": 3007,
+        "identifier": "00aa000000002151",
+        "name": "Chauffe-eau",
+        "family": "2151",
+        "sku": "RM3500ZB"
+      },
+      {
+        "id": 3008,
+        "identifier": "00aa000000005051",
+        "name": "Sous-sol",
+        "family": "5051",
+        "sku": "WL4200"
+      },
+      {
+        "id": 3009,
+        "identifier": "00aa000000006810",
+        "name": "Thermopompe",
+        "family": "6810",
+        "sku": "HP6000ZB-GE"
+      },
+      {
+        "id": 3010,
+        "identifier": "00aa000000002506",
+        "name": "Chargeur auto",
+        "family": "2506",
+        "sku": "RM3250ZB"
+      }
+    ],
+    "2002": [
+      {
+        "id": 4001,
+        "identifier": "00bb00000000c125",
+        "name": "GT125",
+        "sku": "GT125"
+      },
+      {
+        "id": 4002,
+        "identifier": "00bb000000001120",
+        "name": "Séjour",
+        "sku": "TH1120RF-3000"
+      },
+      {
+        "id": 4003,
+        "identifier": "00bb000000000735",
+        "name": "Plancher",
+        "sku": "TH1300RF"
+      },
+      {
+        "id": 4004,
+        "identifier": "00bb000000002120",
+        "name": "Galerie",
+        "sku": "SW2500RF"
+      },
+      {
+        "id": 4005,
+        "identifier": "00bb000000002130",
+        "name": "Lampe",
+        "sku": "DM2500RF"
+      },
+      {
+        "id": 4006,
+        "identifier": "00bb000000002505",
+        "name": "Piscine",
+        "sku": "RM3250RF"
+      }
+    ]
+  },
+  "signatures": {
+    "3001": { "model": 130, "modelCfg": 0, "hardRev": 1, "protocol": "sinopcom" },
+    "3002": {
+      "model": 1123,
+      "modelCfg": 0,
+      "softBuildCfg": 0,
+      "softVersion": { "minor": 9, "middle": 2, "major": 1 },
+      "hardRev": 2,
+      "protocol": "sinopcom"
+    },
+    "3003": { "model": 737, "modelCfg": 0, "hardRev": 1, "protocol": "sinopcom" },
+    "3004": { "model": 1510, "modelCfg": 0, "hardRev": 1, "protocol": "wifi" },
+    "3005": { "model": 2131, "modelCfg": 0, "hardRev": 1, "protocol": "sinopcom" },
+    "3006": { "model": 2121, "modelCfg": 0, "hardRev": 1, "protocol": "sinopcom" },
+    "3007": { "model": 2151, "modelCfg": 0, "hardRev": 1, "protocol": "sinopcom" },
+    "3008": { "model": 5051, "modelCfg": 0, "hardRev": 1, "protocol": "sinopcom" },
+    "3009": { "model": 6810, "modelCfg": 0, "hardRev": 1, "protocol": "sinopcom" },
+    "3010": {
+      "model": 2506,
+      "modelCfg": 0,
+      "softBuildCfg": 0,
+      "softVersion": { "minor": 9, "middle": 2, "major": 1 },
+      "hardRev": 2,
+      "protocol": "sinopcom"
+    },
+    "4001": { "model": 125, "protocol": "miwi" },
+    "4002": { "model": 1123, "type": 10, "protocol": "miwi" },
+    "4003": { "model": 735, "type": 20, "protocol": "miwi" },
+    "4004": { "model": 2120, "type": 102, "protocol": "miwi" },
+    "4005": { "model": 2130, "type": 112, "protocol": "miwi" },
+    "4006": { "model": 2505, "type": 120, "protocol": "miwi" }
+  },
+  "attributes": {
+    "3002": {
+      "roomTemperature": { "value": 20.46, "error": null },
+      "roomSetpoint": 21,
+      "roomSetpointMin": 5,
+      "roomSetpointMax": 30,
+      "systemMode": "auto",
+      "outputPercentDisplay": 45,
+      "drStatus": {
+        "drActive": "off",
+        "optOut": "off",
+        "setpoint": "off",
+        "powerAbsolute": "off",
+        "powerRelative": "off"
+      }
+    },
+    "3003": {
+      "roomTemperature": { "value": 22.1, "error": null },
+      "roomSetpoint": 23.5,
+      "roomSetpointMin": 5,
+      "roomSetpointMax": 36,
+      "systemMode": "heat",
+      "outputPercentDisplay": 0,
+      "drStatus": {
+        "drActive": "off",
+        "optOut": "off",
+        "setpoint": "off",
+        "powerAbsolute": "off",
+        "powerRelative": "off"
+      }
+    },
+    "3004": {
+      "roomTemperature": { "value": 19.4, "error": null },
+      "roomSetpoint": 19,
+      "roomSetpointMin": 5,
+      "roomSetpointMax": 30,
+      "setpointMode": "manual",
+      "occupancyMode": "home",
+      "outputPercentDisplay": { "percent": 0, "sourceType": "heating" },
+      "drStatus": {
+        "drActive": "off",
+        "optOut": "off",
+        "setpoint": "off",
+        "powerAbsolute": "off",
+        "powerRelative": "off",
+        "onOff": "off"
+      }
+    },
+    "3005": { "onOff": "on", "intensity": 60 },
+    "3006": { "onOff": "off" },
+    "3007": {
+      "onOff": "on",
+      "wattageInstant": 3000,
+      "roomTemperature": 58.5,
+      "waterLeakStatus": "ok",
+      "drStatus": { "drActive": "off", "optOut": "off", "onOff": "off" }
+    },
+    "3008": {
+      "waterLeakStatus": "ok",
+      "roomTemperature": { "value": 16.5 },
+      "batteryVoltage": 2.85
+    },
+    "3010": {
+      "onOff": "off",
+      "wattageInstant": 0,
+      "drStatus": { "drActive": "off", "optOut": "off", "onOff": "off" }
+    },
+    "4002": {
+      "roomTemperature": { "value": 18 },
+      "roomSetpoint": 18.5,
+      "roomSetpointMin": 5,
+      "roomSetpointMax": 30,
+      "setpointMode": "manual",
+      "outputPercentDisplay": 30
+    },
+    "4003": {
+      "roomTemperature": { "value": 21.3 },
+      "roomSetpoint": 22,
+      "roomSetpointMin": 5,
+      "roomSetpointMax": 36,
+      "setpointMode": "frostProtection",
+      "outputPercentDisplay": 0
+    },
+    "4004": { "intensity": 0 },
+    "4005": { "intensity": 75 },
+    "4006": { "intensity": 100, "wattageInstant": { "value": 1450 } }
+  },
+  "status": {
+    "3001": { "status": "online" },
+    "4001": { "status": "online" }
+  },
+  "hourly": {
+    "3002": [850, 720, 0, 400],
+    "3003": [1200, 1100, 900, 0],
+    "3004": [300, 0, 0, 150],
+    "3007": [3000, 0, 1500, 0],
+    "3010": [0, 0, 0, 7200]
+  }
+}

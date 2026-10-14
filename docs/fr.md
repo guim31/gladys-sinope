@@ -1,67 +1,225 @@
-# Template de démonstration
+# Sinopé Neviweb
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Vos appareils Sinopé dans Gladys, par Neviweb, le nuage de Sinopé :
+thermostats de plinthes électriques et de plancher chauffant, interrupteurs et
+gradateurs d'éclairage, contrôleurs de charge (chauffe-eau, piscine, borne de
+recharge), détecteurs de fuite d'eau et passerelles GT125 et GT130 — les
+appareils de première génération (GT125), les appareils Zigbee derrière une
+GT130 et les appareils Wi-Fi.
 
-## Ce que vous obtenez
+Développée sans le matériel : vos retours sont les bienvenus. L'intégration a
+été écrite à partir de ce que les intégrations HACS de la communauté savent de
+Neviweb, sans appareil Sinopé ni compte Neviweb : dites-nous ce qui fonctionne
+et ce qui coince sur [GitHub](https://github.com/guim31/gladys-sinope/issues).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+Non affiliée à Sinopé Technologies. Sinopé, Neviweb et Éco-Sinopé sont leurs
+marques.
 
-## Configuration
+## Ce qu'il vous faut
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+- Un compte Neviweb (celui de l'application Neviweb), avec vos appareils.
+- Gladys Assistant 5.2.0 ou plus récent.
+- Un accès Internet depuis Gladys : chaque lecture passe par neviweb.com.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+Les appareils Zigbee que vous avez appairés directement à Zigbee2MQTT ne sont
+pas concernés : ils fonctionnent déjà dans Gladys, sans Neviweb.
 
-## Actions
+## Mise en route
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+1. Dans Gladys, **Intégrations → Installer depuis GitHub**, puis
+   `https://github.com/guim31/gladys-sinope`.
+2. Dans la configuration, saisissez le **Courriel** et le **Mot de passe** de
+   votre compte Neviweb.
+3. **Emplacements Neviweb** : laissez vide pour lire tous les emplacements du
+   compte, ou tapez les noms à garder, séparés par des virgules
+   (`Maison, Chalet`).
+4. **Intervalle de lecture** : 5 minutes (par défaut) ou 10 minutes.
+5. **Langue des noms de fonctionnalités** : français par défaut.
+6. Enregistrez, puis appuyez sur **Tester la connexion à Neviweb** : le
+   résultat liste les emplacements et les appareils pris en charge.
+7. Dans l'onglet **Découverte**, ajoutez les appareils voulus : seuls les
+   appareils ajoutés à Gladys sont lus.
 
-## Scènes
+La session Neviweb est gardée dans le volume `/data` de l'intégration : un
+redémarrage ne se reconnecte pas. Votre mot de passe reste dans la
+configuration de Gladys.
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+## Les appareils
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+Chaque appareil Sinopé devient un appareil Gladys, nommé comme dans Neviweb.
+
+### Thermostats
+
+Thermostats de plinthes (TH1120RF, TH1121RF, TH1123ZB, TH1124ZB et leurs G2,
+TH1500, TH1123WF, TH1124WF, TH1133WF/CR, TH1134WF/CR, TH1143WF, TH1144WF,
+TH1145WF, THEWF01, Ouellet OTH), thermostats de plancher chauffant (TH1300RF,
+TH1300ZB, TH1320ZB, TH1300WF, TH1310WF, TH1325WF, Flextherm) et thermostats
+basse tension (TH1400).
+
+- **Température** : la température de la pièce.
+- **Consigne** : la température voulue, au demi-degré, dans les bornes réglées
+  sur le thermostat.
+- **Mode** : arrêt ou chauffage. L'arrêt coupe le chauffage jusqu'à ce que
+  vous le remettiez en marche : en plein hiver, préférez Absence ou Hors-gel
+  pour ne plus chauffer une pièce.
+- **Préréglage** : Planning (la programmation Neviweb, mode Auto), Confort (la
+  consigne manuelle), Absence et Hors-gel. Tous les thermostats offrent
+  Planning et Confort ; Absence existe sur les thermostats de première
+  génération et Wi-Fi, Hors-gel sur ceux de première génération.
+- **État de chauffe** : chauffe ou non.
+- **Puissance de chauffe** : la demande de chauffage, de 0 à 100 %.
+- **Consommation** : voir Énergie (thermostats GT130 et Wi-Fi, sauf basse
+  tension).
+
+### Éclairage et gradateurs
+
+Interrupteurs SW2500 et gradateurs DM2500 et DM2550.
+
+- **Lumière** : allumée ou éteinte.
+- **Intensité** : de 0 à 100 % (gradateurs). Un gradateur rallumé revient à
+  sa dernière intensité.
+
+### Contrôleurs de charge et chauffe-eau
+
+Contrôleurs de charge RM3250, contrôleurs de chauffe-eau RM3500 et RM3510
+(Calypso), prises SP2600 et SP2610.
+
+- **Marche/arrêt** : alimente la charge ou non.
+- **Puissance** : la puissance tirée en ce moment, en watts.
+- **Température de l'eau** (contrôleurs de chauffe-eau).
+- **Fuite d'eau** (RM3500ZB avec sa sonde).
+- **Consommation** : voir Énergie (contrôleurs GT130 et Wi-Fi).
+
+### Détecteurs de fuite
+
+Détecteurs WL4200, WL4200S, WL4200C et WL4210 sur une GT130.
+
+- **Fuite d'eau** : eau détectée ou non.
+- **Batterie** : estimée d'après la tension des piles (alcalines).
+- **Température** : la température mesurée par le détecteur.
+
+### Passerelles
+
+GT125 et GT130.
+
+- **En ligne** : Neviweb joint la passerelle ou non.
+
+Un appareil que Neviweb ne joint pas porte le badge « injoignable » dans Gladys
+jusqu'à ce qu'il réponde de nouveau.
+
+## Énergie
+
+Les thermostats et contrôleurs de charge GT130 et Wi-Fi reçoivent une
+fonctionnalité **Consommation** : l'énergie de chaque demi-heure, en kWh,
+tirée de l'historique horaire de Neviweb. Neviweb publie une heure avec environ
+deux heures de retard ; l'intégration relit les 24 dernières heures une fois
+par heure et date chaque demi-heure, pour que le tableau de bord énergie et les
+contrats de Gladys 5.2 (un tarif d'Hydro-Québec avec pointes critiques, par
+exemple) la comptent dans la bonne tranche. Un appareil ajouté à Gladys reçoit
+tout de suite ses 24 dernières heures. Les appareils de première génération
+(GT125) ne donnent pas d'historique.
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Thermostats Sinopé** montre tous les thermostats de la maison :
+température de la pièce, consigne, puissance de chauffe (orange quand il
+chauffe), arrêt (gris) ou injoignable (rouge). Son réglage choisit les
+thermostats affichés (tous par défaut, dix au plus). Un bandeau signale une
+période de pointe Éco-Sinopé en cours, et deux boutons règlent le mode
+maison/absent de Neviweb : **Maison** et **Absent** (le mode actuel porte une
+coche ; Absent demande une confirmation).
+
+## Scènes
+
+### Déclencheurs
+
+- **Début d'une période de pointe Éco-Sinopé** : un appareil inscrit au
+  programme Éco-Sinopé reçoit un événement de pointe de Neviweb (préchauffage
+  compris). La variable `devices` donne le nombre d'appareils concernés.
+- **Fin d'une période de pointe Éco-Sinopé** : plus aucun appareil n'est en
+  événement de pointe.
+
+L'intégration lit ces événements sur les appareils eux-mêmes (le `drStatus`
+des thermostats et contrôleurs de charge GT130 et Wi-Fi) : elle les voit à la
+lecture suivante, jusqu'à 5 minutes plus tard. Un redémarrage en pleine pointe
+ne relance pas le déclencheur.
+
+### Actions
+
+- **Régler le mode maison/absent de Neviweb** : Maison ou Absent sur tous les
+  emplacements de la configuration. Absent baisse chaque thermostat à sa
+  propre consigne d'absence, réglée dans l'application Neviweb ; rien n'est
+  coupé. La sortie `locations` donne le nombre d'emplacements modifiés.
+
+La consigne, le mode et le préréglage de chaque thermostat, l'éclairage et les
+contrôleurs de charge se commandent par l'action habituelle « Contrôler un
+appareil ».
+
+### Idées de scènes
+
+- Au début d'une pointe Éco-Sinopé, couper le contrôleur de charge de la
+  piscine et prévenir la maisonnée ; le rallumer à la fin de la pointe.
+- Quand tout le monde est parti, passer Neviweb en mode Absent ; Maison au
+  retour de la première personne.
+- Quand un détecteur de fuite voit de l'eau, envoyer une alerte et couper le
+  chauffe-eau.
+
+## Quotas de Neviweb
+
+Sinopé limite les appels à Neviweb : 30 000 requêtes par jour et par compte,
+et des comptes trop bavards ont déjà été bloqués. L'intégration, donc :
+
+- lit toutes les 5 minutes (10 si vous le choisissez), le rythme demandé par
+  Sinopé ;
+- n'envoie qu'une requête à la fois ;
+- ne lit que les appareils ajoutés à Gladys : une requête par appareil et par
+  lecture, plus une pour les emplacements, et une par heure pour chaque
+  appareil avec une consommation ;
+- garde la session dans `/data` et ne se reconnecte que quand Neviweb le
+  demande ;
+- compte ses requêtes du jour et cesse de lire à 25 000, jusqu'à minuit (vos
+  commandes passent toujours).
+
+Avec 20 appareils, cela fait environ 6 500 requêtes par jour. Le test de
+connexion affiche les requêtes du jour.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Neviweb refuse ce courriel et ce mot de passe »** : corrigez-les et
+  enregistrez. L'intégration ne réessaie jamais un mot de passe refusé : un
+  compte Neviweb n'est donc jamais bloqué par des essais répétés.
+- **« trop de sessions ou de connexions »** : Neviweb limite les sessions
+  ouvertes (application, site Web, Home Assistant…). L'intégration attend
+  15 minutes avant de se reconnecter.
+- **« Budget quotidien de requêtes Neviweb atteint »** : trop de requêtes
+  aujourd'hui (souvent un autre outil sur le même compte) ; les lectures
+  reprennent à minuit.
+- **Un appareil manque dans la Découverte** : son modèle n'est pas pris en
+  charge (voir Limites) ; le test de connexion le nomme.
+- **Un appareil est « injoignable »** : Neviweb ne le joint pas (passerelle
+  débranchée, Wi-Fi tombé, piles) : vérifiez-le dans l'application Neviweb.
+- **Journaux** : l'intégration n'écrit que ce qui arrive (démarrage, appareil
+  perdu ou revenu, vos commandes, les pointes). Lancez-la avec
+  `LOG_LEVEL=debug` pour voir chaque lecture. Aucun mot de passe, courriel ni
+  session n'apparaît jamais dans les journaux.
+
+## Limites
+
+- Infonuagique seulement : sans Neviweb, ni lecture ni commande. Gladys voit
+  un changement jusqu'à 5 minutes plus tard (10 au rythme lent).
+- Non pris en charge : thermopompes (HP6000), thermostats chauffage et
+  climatisation (TH6xxxWF, TH1134ZB-HC), vannes Sedna et leurs débitmètres,
+  moniteurs de niveau de réservoir, multicontrôleurs, et les appareils appairés
+  directement à Zigbee2MQTT.
+- Les réglages des appareils (rétroéclairage, verrouillage du clavier,
+  démarrage anticipé, minuteries, consigne d'absence) restent dans
+  l'application Neviweb.
+- Les thermostats GT130 n'offrent ni Absence ni Hors-gel dans Gladys : utilisez
+  le mode maison/absent de Neviweb.
+- Les noms des fonctionnalités sont fixés à l'ajout d'un appareil : un
+  changement de langue vaut pour les appareils ajoutés ensuite.
+- Développée sans le matériel ni compte : la forme des réponses de Neviweb
+  vient des intégrations de la communauté et certaines sont des hypothèses (les
+  dates de l'historique de consommation, l'état de pointe des appareils
+  Wi-Fi). Vos retours sont les bienvenus sur
+  [GitHub](https://github.com/guim31/gladys-sinope/issues).

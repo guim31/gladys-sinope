@@ -31,16 +31,22 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only: registerHandlers (src/app.js), then connect()
+src/app.js                        every handler: scan, poll, set value, action, scene action, widget
+src/hub.js                        discovery, the container's reading timer, energy, peak triggers, commands
+src/devices.js                    Sinopé device -> Gladys features, states, attribute writes (pure)
+src/neviweb/client.js             Neviweb HTTP client: session in /data, queue, daily budget, errors
+src/neviweb/models.js             signature -> kind (MiWi by type, Zigbee/Wi-Fi by model)
+src/energy.js                     hourly history -> dated half-hours (publishEnergyConsumption)
+src/widgets.js                    "thermostats" widget content (pure)
+src/scenes.js                     scene action `set_location_mode`
+src/i18n.js                       feature names and messages in en/fr/de/es
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/store.js                      /data files (atomic writes, mode 600)
+scripts/probe.mjs                 read-only probe of the real API (shapes only)
+gladys-assistant-integration.json manifest: name, config_schema, actions, widgets, scenes...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys, same sections
+test/                             node --test, SDK fake Gladys + in-memory Neviweb (test/helpers)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +76,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, widget texts, feature names, manifest texts, and
+  `docs/{en,fr,de,es}.md`, kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +240,40 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Sinopé Neviweb (cette intégration)
+
+**API Neviweb** (non documentée ; apprise dans `claudegel/sinope-1` et `claudegel/sinope-130`, GPL-3.0 :
+lire, ne rien recopier). Base `https://neviweb.com/api/`, en-tête `Session-Id` après
+`POST /login` (`interface: "neviweb"`, `stayConnected: 1`). Une erreur est un corps
+`{ error: { code } }`, souvent avec un HTTP 200. Le détail des routes est en tête de
+`src/neviweb/client.js`.
+
+- **Trois générations, trois vocabulaires** : MiWi derrière une GT125 (`setpointMode`, intensité 0-100,
+  101 = dernière intensité), Zigbee derrière une GT130 (`systemMode`, `onOff: "on"/"off"`), Wi-Fi
+  (`setpointMode` + `occupancyMode`, `outputPercentDisplay: { percent }`). Les numéros de modèle MiWi
+  recouvrent ceux du Zigbee (1123) : une MiWi se classe par `signature.type`, jamais par son modèle.
+- **Un attribut inconnu du micrologiciel fait échouer toute la lecture** (`DVCATTRNSPTD`). Les listes
+  d'attributs sont minimales ; `drStatus` est optionnel et retiré pour l'appareil au premier refus.
+- **Quotas** : 30 000 requêtes par jour et par compte (`ACCDAYREQMAX` jusqu'à minuit), cinq minutes
+  entre deux lectures demandées par Sinopé, session expirée après environ dix minutes sans appel
+  (`USRSESSEXP`). Le client n'envoie qu'une requête à la fois, compte ses requêtes du jour (dans
+  `/data`) et cesse de lire à 25 000 ; les commandes passent toujours. Seuls les appareils ajoutés à
+  Gladys sont lus.
+- **Connexions** : `USRBADLOGIN` n'est jamais réessayé avant un changement de configuration (des essais
+  répétés verrouillent le compte) ; `ACCSESSEXC`/`ACCRATELIMIT` attendent 15 minutes.
+- **Énergie** : `GET /device/<id>/consumption/hourly` (GT130 et Wi-Fi seulement) donne les Wh des
+  dernières heures, publiés environ deux heures en retard. Ils partent en demi-heures datées par
+  `publishEnergyConsumption` (Gladys 5.2.0, #3187) sur une fonctionnalité
+  `energy-sensor/thirty-minutes-consumption`, jamais par `publishStates`. Hypothèse non vérifiée :
+  `date` est le début de l'heure.
+- **Éco-Sinopé** : `drStatus.drActive` des thermostats et contrôleurs GT130 et Wi-Fi ; le premier cycle
+  pose la référence sans déclencher (pas de doublon après un redémarrage).
+- **Thermostat dans Gladys 5.2** : `mode` (0 arrêt, 1 chauffage) et `preset` (0 Planning = auto,
+  5 Confort = manuel, 2 Absence, 1 Hors-gel), entiers avec `supported_options` par génération ; le
+  front traduit les valeurs lui-même, le `label` n'est qu'un repli. Pas de type Gladys pour une
+  demande de chauffe en % : `counter-sensor/integer` avec l'unité `percent` (comme gladys-pihole).
+- **Session** : la sandbox de cette session refuse `neviweb.com` (CONNECT 403) ; le fetch de Node
+  ignore `HTTPS_PROXY` sans `NODE_USE_ENV_PROXY=1`. Les tests passent par `test/helpers/fakeNeviweb.js`,
+  les formes de réponse sont reconstruites (`test/fixtures/neviweb/README.md`) ; `scripts/probe.mjs` les
+  vérifie sur un vrai compte, en lecture seule.

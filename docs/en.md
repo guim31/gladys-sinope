@@ -1,61 +1,211 @@
-# Demo Devices Template
+# Sinopé Neviweb
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Your Sinopé devices in Gladys, through Neviweb, the Sinopé cloud: thermostats
+for electric baseboards and floor heating, light switches and dimmers, load
+controllers (water heater, pool, car charger), water leak detectors and the
+GT125 and GT130 gateways — the first-generation devices (GT125), the Zigbee
+ones behind a GT130, and the Wi-Fi ones.
 
-## What you get
+Developed without the hardware: feedback welcome. The integration was written
+from what the HACS integrations of the community know of Neviweb, without a
+Sinopé device nor a Neviweb account: tell us what works and what does not on
+[GitHub](https://github.com/guim31/gladys-sinope/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+Not affiliated with Sinopé Technologies. Sinopé, Neviweb and Éco-Sinopé are
+their trademarks.
 
-## Configuration
+## What you need
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+- A Neviweb account (the one of the Neviweb app), with your devices in it.
+- Gladys Assistant 5.2.0 or later.
+- Internet access from Gladys: every reading goes through neviweb.com.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+The Zigbee devices you paired directly to Zigbee2MQTT are not concerned: they
+already work in Gladys without Neviweb.
 
-## Actions
+## Set up
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+1. In Gladys, **Integrations → Install from GitHub**, then
+   `https://github.com/guim31/gladys-sinope`.
+2. In the configuration, enter the **E-mail** and **Password** of your Neviweb
+   account.
+3. **Neviweb locations**: leave empty to read every location of the account,
+   or type the names to keep, separated by commas (`Home, Cottage`).
+4. **Reading interval**: 5 minutes (default) or 10 minutes.
+5. **Language of the feature names**: French by default.
+6. Save, then press **Test the Neviweb connection**: it lists the locations
+   and the supported devices.
+7. In the **Discovery** tab, add the devices you want: only the devices added
+   to Gladys are read.
 
-## Scenes
+The Neviweb session is kept in the integration's `/data` volume, so a restart
+does not log in again. Your password stays in the Gladys configuration.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+## The devices
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+Each Sinopé device becomes one Gladys device, named as in Neviweb.
+
+### Thermostats
+
+Baseboard thermostats (TH1120RF, TH1121RF, TH1123ZB, TH1124ZB and their G2,
+TH1500, TH1123WF, TH1124WF, TH1133WF/CR, TH1134WF/CR, TH1143WF, TH1144WF,
+TH1145WF, THEWF01, Ouellet OTH), floor heating thermostats (TH1300RF,
+TH1300ZB, TH1320ZB, TH1300WF, TH1310WF, TH1325WF, Flextherm) and low-voltage
+thermostats (TH1400).
+
+- **Temperature**: the room temperature.
+- **Setpoint**: the target temperature, by half degree, within the bounds set
+  on the thermostat.
+- **Mode**: off or heating. Off stops the heating until you turn it back on:
+  in a Québec winter, prefer Away or Frost to stop heating a room.
+- **Preset**: Schedule (the Neviweb programme, Auto mode), Comfort (the
+  manual setpoint), Away and Frost. Every thermostat offers Schedule and
+  Comfort; Away exists on the first-generation and Wi-Fi thermostats, Frost
+  on the first-generation ones.
+- **Heating state**: heats or not.
+- **Heating power**: the heating demand, from 0 to 100 %.
+- **Consumption**: see Energy (GT130 and Wi-Fi thermostats, except
+  low-voltage ones).
+
+### Lights and dimmers
+
+SW2500 light switches and DM2500, DM2550 dimmers.
+
+- **Light**: on or off.
+- **Brightness**: from 0 to 100 % (dimmers). A dimmer turned back on returns
+  to its last brightness.
+
+### Load controllers and water heaters
+
+RM3250 load controllers, RM3500 and RM3510 water heater controllers (Calypso),
+SP2600 and SP2610 outlets.
+
+- **On/off**: powers the load or not.
+- **Power**: the power drawn now, in watts.
+- **Water temperature** (water heater controllers).
+- **Water leak** (RM3500ZB with its probe).
+- **Consumption**: see Energy (GT130 and Wi-Fi controllers).
+
+### Leak detectors
+
+WL4200, WL4200S, WL4200C and WL4210 detectors on a GT130.
+
+- **Water leak**: water detected or not.
+- **Battery**: estimated from the voltage of the batteries (alkaline).
+- **Temperature**: the temperature measured by the detector.
+
+### Gateways
+
+GT125 and GT130.
+
+- **Online**: whether Neviweb reaches the gateway.
+
+A device Neviweb cannot reach shows the "unreachable" badge in Gladys until it
+answers again.
+
+## Energy
+
+The GT130 and Wi-Fi thermostats and load controllers get a **Consumption**
+feature: the energy of every half-hour, in kWh, from the hourly history of
+Neviweb. Neviweb publishes an hour about two hours late; the integration reads
+the last 24 hours once an hour and dates every half-hour, so the energy
+dashboard and the contracts of Gladys 5.2 (a Hydro-Québec rate with critical
+peaks, for instance) count it in the right slot. A device added to Gladys gets
+the last 24 hours right away. The first-generation devices (GT125) give no
+history.
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **Sinopé thermostats** widget shows every thermostat of the house: room
+temperature, setpoint, heating power (orange while it heats), off (grey) or
+unreachable (red). Its setting picks the thermostats to show (all by default,
+ten at most). A banner says when an Éco-Sinopé peak period is in progress, and
+two buttons set the Neviweb home/away mode: **Home** and **Away** (the current
+one carries a check mark; Away asks for confirmation).
+
+## Scenes
+
+### Triggers
+
+- **Éco-Sinopé peak period started**: a device enrolled in the Éco-Sinopé
+  programme receives a peak event from Neviweb (the preheating included). The
+  variable `devices` gives the number of devices in the event.
+- **Éco-Sinopé peak period ended**: no device is in a peak event any more.
+
+The integration reads these events from the devices themselves (the
+`drStatus` of the GT130 and Wi-Fi thermostats and load controllers): it sees
+them at the next reading, up to 5 minutes late. A restart in the middle of a
+peak does not fire the trigger a second time.
+
+### Actions
+
+- **Set the Neviweb home/away mode**: Home or Away on every location of the
+  configuration. Away lowers each thermostat to its own away setpoint, set in
+  the Neviweb app; nothing is turned off. The output `locations` gives the
+  number of locations changed.
+
+The setpoint, mode and preset of each thermostat, the lights and the load
+controllers are commanded from the usual "Control a device" action.
+
+### Scene ideas
+
+- When an Éco-Sinopé peak starts, turn off the pool load controller and
+  notify the household; turn it back on when the peak ends.
+- When everybody has left, set the Neviweb mode to Away; Home when the first
+  person comes back.
+- When a leak detector sees water, send an alert and turn off the water
+  heater.
+
+## Neviweb quotas
+
+Sinopé limits the calls to Neviweb: 30,000 requests a day per account, and
+it has cut off accounts that called too often. The integration therefore:
+
+- reads every 5 minutes (10 if you choose), the pace Sinopé asks for;
+- sends one request at a time;
+- reads only the devices added to Gladys: one request per device and per
+  reading, plus one for the locations, and one an hour per device with a
+  consumption;
+- keeps the session in `/data` and logs in only when Neviweb asks for it;
+- counts its requests of the day and stops reading at 25,000, until midnight
+  (your commands still go).
+
+With 20 devices, that is about 6,500 requests a day. The connection test
+shows the requests of the day.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"Neviweb refused this e-mail and password"**: correct them and save. The
+  integration does not try a refused password again, so a Neviweb account
+  never gets locked by repeated attempts.
+- **"too many sessions or logins"**: Neviweb limits the open sessions (the
+  app, the web site, Home Assistant...). The integration waits 15 minutes
+  before logging in again.
+- **"Daily Neviweb request budget reached"**: too many requests today (often
+  another tool on the same account); the readings resume at midnight.
+- **A device is missing from Discovery**: its model is not supported (see
+  Limits); the connection test names it.
+- **A device shows "unreachable"**: Neviweb cannot reach it (gateway
+  unplugged, Wi-Fi down, battery): check it in the Neviweb app.
+- **Logs**: the integration only logs what happens (start, a device lost or
+  back, your commands, the peaks). Start it with `LOG_LEVEL=debug` to see every
+  reading. No password, e-mail nor session ever appears in the logs.
+
+## Limits
+
+- Cloud only: no Neviweb, no reading nor command. Gladys sees a change up to
+  5 minutes late (10 with the slow pace).
+- Not supported: heat pumps (HP6000), heat/cool thermostats (TH6xxxWF,
+  TH1134ZB-HC), Sedna valves and their flow meters, tank level monitors,
+  multi-controllers, and the devices paired directly to Zigbee2MQTT.
+- The settings of the devices (backlight, keypad lock, early start, timers,
+  away setpoint) stay in the Neviweb app.
+- The GT130 thermostats offer no Away nor Frost preset in Gladys: use the
+  Neviweb home/away mode.
+- The feature names are set when a device is added: a change of language
+  applies to the devices added afterwards.
+- Developed without the hardware nor an account: the shapes of the Neviweb
+  answers come from the community integrations and some are assumptions
+  (the dates of the consumption history, the peak status of the Wi-Fi
+  devices). Feedback welcome on
+  [GitHub](https://github.com/guim31/gladys-sinope/issues).
