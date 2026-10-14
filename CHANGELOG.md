@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-14
+
 ### Added
 
 - Sinopé devices from a Neviweb account: thermostats for electric baseboards,
@@ -30,4 +32,5 @@ the notes of the version's GitHub Release.
   password never tried twice.
 - Four languages: English, French, German, Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-sinope/commits/main
+[Unreleased]: https://github.com/guim31/gladys-sinope/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-sinope/releases/tag/v1.0.1
